@@ -1,0 +1,1482 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset=utf8>
+  <meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <style>
+    :root {
+      color-scheme: light;
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px)
+    }
+
+    html {
+      scroll-padding-top: env(safe-area-inset-top, 0px)
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font: 14px -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #fff;
+      color: #000
+    }
+
+    img {
+      max-width: 100%
+    }
+
+    [hidden]:not([hidden=until-found i]) {
+      display: none !important
+    }
+  </style>
+</head>
+
+<body>
+  <title>Kod Yo‘li</title>
+  <meta name="claude:viewport-fit-sides" content="cover">
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Onest:wght@400;500;600&family=Pixelify+Sans:wght@500;700&display=swap">
+  <style>
+    /* Layout: one centred column. Header, HUD, question card, game stage (canvas or menu/result panel), feedback strip, touch pad. */
+    :root {
+      --paper: #e9eff5;
+      --grid: #d3dde8;
+      --glyph: #c5d2e0;
+      --surface: #ffffff;
+      --line: #c5d2e0;
+      --ink: #10243b;
+      --ink-soft: #4a5f78;
+      --ground: #17304d;
+      --ground-line: #27496b;
+      --edge: rgba(8, 22, 40, .6);
+      --blue: #2f6df6;
+      --lemon: #ffc928;
+      --mint: #0e8a67;
+      --coral: #d63f4c;
+      --bug: #8a4bd8;
+      --on-color: #ffffff;
+      --z1: #0e8a67;
+      --z2: #5b5fe0;
+      --z3: #e8761f;
+      --font-display: "Pixelify Sans", "Trebuchet MS", system-ui, sans-serif;
+      --font-body: "Onest", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --paper: #0d1b2e;
+        --grid: #16304b;
+        --glyph: #1d3a58;
+        --surface: #13263c;
+        --line: #27425f;
+        --ink: #e8f0f9;
+        --ink-soft: #93a8c0;
+        --ground: #1b3552;
+        --ground-line: #2a4c72;
+        --edge: rgba(0, 0, 0, .6);
+        --blue: #5b8cff;
+        --lemon: #ffd04d;
+        --mint: #2fd0a0;
+        --coral: #ff6b78;
+        --bug: #b08cff;
+        --on-color: #0b1626;
+        --z1: #2fd0a0;
+        --z2: #8f93ff;
+        --z3: #ff9748;
+        color-scheme: dark;
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --paper: #0d1b2e;
+      --grid: #16304b;
+      --glyph: #1d3a58;
+      --surface: #13263c;
+      --line: #27425f;
+      --ink: #e8f0f9;
+      --ink-soft: #93a8c0;
+      --ground: #1b3552;
+      --ground-line: #2a4c72;
+      --edge: rgba(0, 0, 0, .6);
+      --blue: #5b8cff;
+      --lemon: #ffd04d;
+      --mint: #2fd0a0;
+      --coral: #ff6b78;
+      --bug: #b08cff;
+      --on-color: #0b1626;
+      --z1: #2fd0a0;
+      --z2: #8f93ff;
+      --z3: #ff9748;
+      color-scheme: dark;
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      background: var(--paper);
+      background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 32px 32px;
+      color: var(--ink);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.45;
+      padding-block: 18px 36px;
+      padding-left: max(16px, env(safe-area-inset-left, 0px));
+      padding-right: max(16px, env(safe-area-inset-right, 0px));
+    }
+
+    h1,
+    h2,
+    p,
+    ol,
+    ul,
+    pre {
+      margin: 0
+    }
+
+    button {
+      font: inherit;
+      color: inherit;
+      cursor: pointer
+    }
+
+    button:focus-visible {
+      outline: 3px solid var(--lemon);
+      outline-offset: 2px
+    }
+
+    .wrap {
+      max-width: 920px;
+      margin-inline: auto;
+      display: grid;
+      gap: 12px
+    }
+
+    .top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0
+    }
+
+    .brand svg {
+      flex: none;
+      width: 34px;
+      height: 38px
+    }
+
+    .brand h1 {
+      font: 700 28px/1 var(--font-display);
+      letter-spacing: .01em
+    }
+
+    .brand p {
+      font-size: 13px;
+      color: var(--ink-soft);
+      margin-top: 3px
+    }
+
+    .tools {
+      display: flex;
+      gap: 8px;
+      align-items: center
+    }
+
+    .seg {
+      display: flex;
+      border: 2px solid var(--ink);
+      border-radius: 4px;
+      overflow: hidden
+    }
+
+    .seg button {
+      appearance: none;
+      border: 0;
+      background: var(--surface);
+      padding: 6px 12px;
+      font: 700 14px var(--font-display);
+      letter-spacing: .06em
+    }
+
+    .seg button[aria-pressed="true"] {
+      background: var(--ink);
+      color: var(--paper)
+    }
+
+    .iconbtn {
+      width: 40px;
+      height: 36px;
+      border: 2px solid var(--ink);
+      border-radius: 4px;
+      background: var(--surface);
+      display: grid;
+      place-items: center
+    }
+
+    .iconbtn svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor
+    }
+
+    .iconbtn.is-muted .wave {
+      display: none
+    }
+
+    .hud {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 18px;
+      padding: 10px 14px;
+      background: var(--surface);
+      border: 2px solid var(--line);
+      border-radius: 4px
+    }
+
+    .zonechip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font: 700 15px var(--font-display);
+      min-width: 0
+    }
+
+    .zonechip i {
+      flex: none;
+      width: 12px;
+      height: 12px;
+      background: var(--zc, var(--z1));
+      display: block
+    }
+
+    .pips {
+      display: flex;
+      gap: 4px;
+      list-style: none;
+      padding: 0
+    }
+
+    .pips li {
+      width: 14px;
+      height: 14px;
+      background: var(--c);
+      opacity: .3
+    }
+
+    .pips li.done {
+      opacity: 1
+    }
+
+    .pips li.current {
+      opacity: 1;
+      outline: 2px solid var(--ink);
+      outline-offset: 1px
+    }
+
+    .hearts {
+      display: flex;
+      gap: 4px;
+      margin-left: auto
+    }
+
+    .heart.on {
+      fill: var(--coral)
+    }
+
+    .heart.off {
+      fill: var(--line)
+    }
+
+    .score {
+      font: 700 18px var(--font-display);
+      font-variant-numeric: tabular-nums;
+      display: flex;
+      gap: 8px;
+      align-items: baseline
+    }
+
+    .score span {
+      font: 600 12px var(--font-body);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--ink-soft)
+    }
+
+    .qcard {
+      background: var(--surface);
+      border: 2px solid var(--line);
+      border-radius: 4px;
+      padding: 14px 16px;
+      display: grid;
+      gap: 10px;
+      box-shadow: 0 4px 0 var(--line)
+    }
+
+    .qmeta {
+      font: 600 12px var(--font-body);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--ink-soft)
+    }
+
+    .qcard h2 {
+      font: 600 18px/1.35 var(--font-body);
+      text-wrap: balance
+    }
+
+    pre.code {
+      font: 500 13px/1.55 var(--font-mono);
+      background: var(--paper);
+      border: 2px solid var(--line);
+      border-radius: 3px;
+      padding: 10px 12px;
+      overflow-x: auto;
+      max-width: 100%
+    }
+
+    .legend {
+      list-style: none;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+      gap: 8px
+    }
+
+    .legend li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 8px 10px;
+      border: 2px solid var(--line);
+      border-radius: 3px;
+      min-width: 0
+    }
+
+    .ltr {
+      flex: none;
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      background: var(--blue);
+      color: var(--on-color);
+      font: 700 15px var(--font-display);
+      border-radius: 2px
+    }
+
+    .ltx {
+      min-width: 0;
+      overflow-wrap: anywhere
+    }
+
+    .legend li.wrong {
+      opacity: .65
+    }
+
+    .legend li.wrong .ltr {
+      background: var(--coral)
+    }
+
+    .legend li.wrong .ltx {
+      text-decoration: line-through
+    }
+
+    .legend li.right {
+      border-color: var(--mint)
+    }
+
+    .legend li.right .ltr {
+      background: var(--mint)
+    }
+
+    .stage {
+      border: 3px solid var(--ground);
+      border-radius: 4px;
+      overflow: hidden;
+      background: var(--paper);
+      box-shadow: 0 5px 0 var(--ground-line)
+    }
+
+    #cv {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 2/1;
+      touch-action: none
+    }
+
+    .overlay {
+      padding: 22px 20px;
+      background-color: var(--paper);
+      background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 40px 40px
+    }
+
+    .panel {
+      max-width: 540px;
+      margin-inline: auto;
+      display: grid;
+      gap: 14px
+    }
+
+    .panel .hero {
+      width: 56px;
+      height: 64px
+    }
+
+    .panel h2 {
+      font: 700 32px/1.05 var(--font-display);
+      text-wrap: balance
+    }
+
+    .panel p {
+      max-width: 60ch
+    }
+
+    .rules {
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px
+    }
+
+    .rules li {
+      display: flex;
+      gap: 10px
+    }
+
+    .rules li::before {
+      content: "";
+      flex: none;
+      width: 10px;
+      height: 10px;
+      margin-top: 6px;
+      background: var(--lemon)
+    }
+
+    .keys {
+      font: 500 13px var(--font-mono);
+      color: var(--ink-soft)
+    }
+
+    .btn {
+      appearance: none;
+      justify-self: start;
+      border: 2px solid var(--ink);
+      background: var(--blue);
+      color: var(--on-color);
+      font: 700 19px var(--font-display);
+      padding: 11px 24px;
+      border-radius: 4px;
+      box-shadow: 0 4px 0 var(--ink)
+    }
+
+    .btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 var(--ink)
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px
+    }
+
+    .stat {
+      padding: 8px 12px;
+      background: var(--surface);
+      border: 2px solid var(--line);
+      border-radius: 3px
+    }
+
+    .stat b {
+      display: block;
+      font: 700 26px/1.1 var(--font-display);
+      font-variant-numeric: tabular-nums
+    }
+
+    .stat span {
+      font-size: 12.5px;
+      color: var(--ink-soft)
+    }
+
+    .zrows {
+      display: grid;
+      gap: 6px
+    }
+
+    .zrow {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 2px 12px;
+      align-items: center;
+      padding: 8px 12px;
+      background: var(--surface);
+      border: 2px solid var(--line);
+      border-radius: 3px
+    }
+
+    .zrow b {
+      font: 700 15px var(--font-display);
+      display: flex;
+      gap: 8px;
+      align-items: center
+    }
+
+    .zrow b i {
+      width: 10px;
+      height: 10px;
+      background: var(--c);
+      display: block;
+      flex: none
+    }
+
+    .zrow em {
+      font: 700 16px var(--font-display);
+      font-style: normal;
+      font-variant-numeric: tabular-nums
+    }
+
+    .advice {
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 2px solid var(--line);
+      border-radius: 3px
+    }
+
+    .feedback {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 10px 14px;
+      border: 2px solid var(--line);
+      border-radius: 4px;
+      background: var(--surface);
+      min-height: 58px
+    }
+
+    .feedback[data-kind="right"] {
+      border-color: var(--mint)
+    }
+
+    .feedback[data-kind="wrong"] {
+      border-color: var(--coral)
+    }
+
+    .fbicon {
+      flex: none;
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      background: var(--ink-soft);
+      color: var(--paper);
+      border-radius: 2px
+    }
+
+    .fbicon svg {
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 3;
+      stroke-linecap: square
+    }
+
+    .feedback[data-kind="right"] .fbicon {
+      background: var(--mint);
+      color: var(--on-color)
+    }
+
+    .feedback[data-kind="wrong"] .fbicon {
+      background: var(--coral);
+      color: var(--on-color)
+    }
+
+    #fbText {
+      min-width: 0;
+      padding-top: 3px
+    }
+
+    .pad {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      user-select: none;
+      -webkit-user-select: none
+    }
+
+    .pad .grp {
+      display: flex;
+      gap: 10px
+    }
+
+    .pad button {
+      appearance: none;
+      width: 76px;
+      height: 60px;
+      border: 2px solid var(--ink);
+      border-radius: 4px;
+      background: var(--surface);
+      box-shadow: 0 4px 0 var(--ink);
+      display: grid;
+      place-items: center;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent
+    }
+
+    .pad button.jump {
+      width: 112px;
+      background: var(--blue);
+      color: var(--on-color)
+    }
+
+    .pad button:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 var(--ink)
+    }
+
+    .pad svg {
+      width: 26px;
+      height: 26px;
+      fill: currentColor
+    }
+
+    .hint-keys {
+      font: 500 13px var(--font-mono);
+      color: var(--ink-soft);
+      text-align: center
+    }
+
+    @media (hover:hover) and (pointer:fine) {
+      .pad {
+        display: none
+      }
+    }
+
+    @media (hover:none),
+    (pointer:coarse) {
+      .hint-keys {
+        display: none
+      }
+    }
+
+    @media (max-width:520px) {
+      .brand h1 {
+        font-size: 24px
+      }
+
+      .panel h2 {
+        font-size: 27px
+      }
+
+      .stats {
+        grid-template-columns: 1fr 1fr
+      }
+    }
+
+    .r-ink {
+      fill: var(--ink)
+    }
+
+    .r-paper {
+      fill: var(--paper)
+    }
+
+    .r-lemon {
+      fill: var(--lemon)
+    }
+
+    .r-blue {
+      fill: var(--blue)
+    }
+  </style>
+
+  <div class="wrap">
+    <header class="top">
+      <div class="brand">
+        <svg id="logo" viewBox="0 0 14 16" shape-rendering="crispEdges" aria-hidden="true"></svg>
+        <div>
+          <h1>Kod Yo‘li</h1>
+          <p id="brandSub"></p>
+        </div>
+      </div>
+      <div class="tools">
+        <div class="seg" role="group" id="langSeg">
+          <button type="button" data-lang="uz" aria-pressed="true">UZ</button>
+          <button type="button" data-lang="ru" aria-pressed="false">RU</button>
+        </div>
+        <button type="button" class="iconbtn" id="muteBtn" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 9h4l5-4v14l-5-4H3z" />
+            <path class="wave" d="M15 8.5a5 5 0 0 1 0 7M17.5 5.5a9 9 0 0 1 0 13" fill="none" stroke="currentColor"
+              stroke-width="2" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="hud" id="hud">
+      <div class="zonechip"><i id="zoneDot"></i><span id="zoneName"></span></div>
+      <ol class="pips" id="pips"></ol>
+      <div class="hearts" id="hearts" role="img"></div>
+      <div class="score"><span id="scoreLabel"></span><b id="score">0</b></div>
+    </section>
+
+    <section class="qcard" aria-labelledby="qText">
+      <p class="qmeta" id="qMeta"></p>
+      <h2 id="qText"></h2>
+      <pre class="code" id="qCode" hidden><code></code></pre>
+      <ol class="legend" id="legend"></ol>
+    </section>
+
+    <div class="stage">
+      <canvas id="cv" width="800" height="400" role="img" hidden></canvas>
+      <div class="overlay" id="overlay"></div>
+    </div>
+
+    <div class="feedback" id="feedback" data-kind="hint" role="status" aria-live="polite">
+      <span class="fbicon" id="fbIcon"></span>
+      <p id="fbText"></p>
+    </div>
+
+    <div class="pad" id="pad">
+      <div class="grp">
+        <button type="button" id="bLeft"><svg viewBox="0 0 24 24" aria-hidden="true">
+            <polygon points="16,4 6,12 16,20" />
+          </svg></button>
+        <button type="button" id="bRight"><svg viewBox="0 0 24 24" aria-hidden="true">
+            <polygon points="8,4 18,12 8,20" />
+          </svg></button>
+      </div>
+      <button type="button" id="bJump" class="jump"><svg viewBox="0 0 24 24" aria-hidden="true">
+          <polygon points="12,5 4,19 20,19" />
+        </svg></button>
+    </div>
+    <p class="hint-keys" id="keysHint"></p>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      /* ---------- constants ---------- */
+      const W = 800, H = 400, GY = 340, PW = 26, PH = 34, SPAWN_X = 18, SPEED = 3.1, JUMP = 11.4, GRAV = .55, MAXFALL = 13, STEP = 1000 / 60;
+      const BX = [150, 268, 386, 504];
+      const N = 10;
+
+      /* ---------- content ---------- */
+      const Q = [
+        {
+          z: 0, code: null,
+          uz: {
+            q: "Algoritm tushunchasini kiritishda o‘qituvchi eng avval nimaga tayanadi?",
+            o: ["Kundalik hayotdagi amallar ketma-ketligiga (masalan, choy damlash)", "Sintaksis qoidalarini yodlashga", "Tayyor murakkab dasturni ko‘rsatishga", "Kompilyator tuzilishini tushuntirishga"],
+            why: "Yangi tushuncha o‘quvchining tanish tajribasiga tayanib shakllanadi, rasmiy ta’rif esa keyin beriladi."
+          },
+          ru: {
+            q: "На что в первую очередь опирается учитель, вводя понятие алгоритма?",
+            o: ["На последовательность бытовых действий (например, заваривание чая)", "На заучивание правил синтаксиса", "На показ готовой сложной программы", "На объяснение устройства компилятора"],
+            why: "Новое понятие формируется на знакомом опыте ученика, а формальное определение даётся потом."
+          }
+        },
+        {
+          z: 0, code: null,
+          uz: {
+            q: "O‘zgaruvchi tushunchasini tushuntirish uchun qaysi o‘xshatish eng mos?",
+            o: ["Nomi yozilgan quti: ichidagi qiymatni almashtirish mumkin", "Bir marta yoziladigan va o‘zgarmaydigan yozuv", "Kompyuterning tashqi korpusi", "Dastur matnidagi izoh"],
+            why: "Nomli quti o‘zgaruvchining uch xossasini ko‘rsatadi: nomi bor, qiymat saqlaydi, qiymati o‘zgaradi."
+          },
+          ru: {
+            q: "Какая аналогия лучше всего объясняет понятие переменной?",
+            o: ["Подписанная коробка: значение внутри можно заменить", "Надпись, которую делают один раз и не меняют", "Внешний корпус компьютера", "Комментарий в тексте программы"],
+            why: "Подписанная коробка показывает три свойства переменной: у неё есть имя, она хранит значение, значение можно менять."
+          }
+        },
+        {
+          z: 0, code: `x = 7
+if x % 2 == 0:
+    print("even")
+else:
+    print("odd")`,
+          uz: {
+            q: "Shart tushunchasini tekshirish: dastur nima chiqaradi?",
+            o: ["odd", "even", "Xato xabari", "Hech narsa chiqarmaydi"],
+            why: "7 % 2 natijasi 1, shart yolg‘on, shuning uchun else tarmog‘i bajariladi."
+          },
+          ru: {
+            q: "Проверка понятия условия: что выведет программа?",
+            o: ["odd", "even", "Сообщение об ошибке", "Ничего не выведет"],
+            why: "7 % 2 равно 1, условие ложно, поэтому выполняется ветка else."
+          }
+        },
+        {
+          z: 1, code: null,
+          uz: {
+            q: "Trassirovka (kodni qo‘lda, qadam-baqadam bajarish) kodlash ko‘nikmasini nima uchun rivojlantiradi?",
+            o: ["O‘quvchi o‘zgaruvchilar holatini qadam-baqadam tasavvur qilishni o‘rganadi", "Dastur tezroq ishlay boshlaydi", "Kod hajmi avtomatik kamayadi", "Xatolar umuman paydo bo‘lmaydi"],
+            why: "Trassirovka dastur ichida nima bo‘layotganini ko‘rinadigan qiladi. Bu xatoni topish va algoritmik fikrlashning asosi."
+          },
+          ru: {
+            q: "Почему трассировка (ручное пошаговое выполнение кода) развивает навык программирования?",
+            o: ["Ученик учится представлять состояние переменных шаг за шагом", "Программа начинает работать быстрее", "Объём кода сокращается сам собой", "Ошибки перестают появляться вообще"],
+            why: "Трассировка делает видимым то, что происходит внутри программы. Это основа поиска ошибок и алгоритмического мышления."
+          }
+        },
+        {
+          z: 1, code: `s = 0
+for i in range(1, 5):
+    s += i
+print(s)`,
+          uz: {
+            q: "Dastur natijasini toping.",
+            o: ["10", "15", "4", "5"],
+            why: "range(1, 5) sonlari 1, 2, 3, 4 ni beradi (5 kirmaydi): 1+2+3+4 = 10."
+          },
+          ru: {
+            q: "Определите результат программы.",
+            o: ["10", "15", "4", "5"],
+            why: "range(1, 5) даёт числа 1, 2, 3, 4 (5 не входит): 1+2+3+4 = 10."
+          }
+        },
+        {
+          z: 1, code: null,
+          uz: {
+            q: "Xatolarni topish (debugging) ko‘nikmasini shakllantirishning eng samarali usuli qaysi?",
+            o: ["Ataylab xato kiritilgan kodni o‘quvchiga topib tuzatishga berish", "Faqat xatosiz tayyor kodni ko‘chirtirish", "Xatolar haqida gapirmaslik", "Birdaniga eng qiyin masalani berish"],
+            why: "Tayyor xatoli kod o‘quvchini xatoni izlash, taxmin qilish va tekshirish jarayoniga olib kiradi."
+          },
+          ru: {
+            q: "Какой способ эффективнее всего формирует навык поиска ошибок (отладки)?",
+            o: ["Дать ученику код с намеренной ошибкой, чтобы он нашёл и исправил её", "Заставлять переписывать только безошибочный готовый код", "Не говорить об ошибках", "Сразу давать самую сложную задачу"],
+            why: "Код с готовой ошибкой вовлекает ученика в поиск, выдвижение гипотез и проверку."
+          }
+        },
+        {
+          z: 1, code: null,
+          uz: {
+            q: "Juft dasturlashda (pair programming) rollar qanday taqsimlanadi?",
+            o: ["Biri yozadi (haydovchi), ikkinchisi tekshiradi va yo‘l ko‘rsatadi (navigator); rollar almashadi", "Ikkalasi bir vaqtda bitta klaviaturada yozadi", "Biri yozadi, ikkinchisi kuzatmaydi", "Har biri alohida masalani yechadi"],
+            why: "Rollar almashinuvi ikkala o‘quvchini ham faol qiladi: biri yozadi, ikkinchisi fikrlaydi va xatoni ushlaydi."
+          },
+          ru: {
+            q: "Как распределяются роли при парном программировании?",
+            o: ["Один пишет код (водитель), второй проверяет и подсказывает (штурман); роли меняются", "Оба одновременно печатают на одной клавиатуре", "Один пишет, второй не следит", "Каждый решает свою отдельную задачу"],
+            why: "Смена ролей вовлекает обоих: один пишет, второй думает и ловит ошибки."
+          }
+        },
+        {
+          z: 2, code: null,
+          uz: {
+            q: "Dasturlash mavzularini bosqichma-bosqich murakkablashtirishning to‘g‘ri tartibi qaysi?",
+            o: ["Kiritish-chiqarish → shart → sikl → massiv → funksiya", "Funksiya → massiv → sikl → shart", "Massiv → kiritish-chiqarish → funksiya → sikl", "Tartibning ahamiyati yo‘q"],
+            why: "Har bir yangi mavzu oldingisiga tayanadi: avval ketma-ket bajarish, so‘ng tarmoqlanish, takrorlash, ma’lumotlar to‘plami va nihoyat kodni funksiyalarga ajratish."
+          },
+          ru: {
+            q: "Каков правильный порядок постепенного усложнения тем программирования?",
+            o: ["Ввод-вывод → условие → цикл → массив → функция", "Функция → массив → цикл → условие", "Массив → ввод-вывод → функция → цикл", "Порядок не имеет значения"],
+            why: "Каждая новая тема опирается на предыдущую: сначала линейные программы, потом ветвление, повторение, наборы данных и, наконец, разбиение кода на функции."
+          }
+        },
+        {
+          z: 2, code: null,
+          uz: {
+            q: "“1 dan n gacha sonlar yig‘indisi” masalasini murakkablashtirishning eng mos qadami qaysi?",
+            o: ["Faqat juft sonlar yig‘indisini hisoblash", "Boshqa dasturlash tiliga o‘tish", "Masalani tashlab keyingi mavzuga o‘tish", "Dasturni imkon qadar qisqa yozishni talab qilish"],
+            why: "Tanish g‘oyaga bitta yangi element (shart) qo‘shiladi. Sakrash kichik va o‘quvchi uchun boshqariladigan bo‘ladi."
+          },
+          ru: {
+            q: "Какой шаг лучше всего усложняет задачу «сумма чисел от 1 до n»?",
+            o: ["Считать сумму только чётных чисел", "Перейти на другой язык программирования", "Бросить задачу и перейти к следующей теме", "Потребовать написать программу как можно короче"],
+            why: "К знакомой идее добавляется один новый элемент (условие). Скачок небольшой и управляемый для ученика."
+          }
+        },
+        {
+          z: 2, code: `def f(n):
+    if n <= 1:
+        return 1
+    return n * f(n - 1)
+
+print(f(4))`,
+          uz: {
+            q: "Eng yuqori bosqich: rekursiv funksiya nima chiqaradi?",
+            o: ["24", "10", "16", "1"],
+            why: "f(4) = 4 · f(3) = 4 · 3 · f(2) = 4 · 3 · 2 · f(1) = 24."
+          },
+          ru: {
+            q: "Высший уровень: что выведет рекурсивная функция?",
+            o: ["24", "10", "16", "1"],
+            why: "f(4) = 4 · f(3) = 4 · 3 · f(2) = 4 · 3 · 2 · f(1) = 24."
+          }
+        }
+      ];
+
+      /* level layouts: s = spikes [x,w], b = bugs [x1,x2,speed], p = one-way platforms [x,y,w], by = block tops */
+      const CFG = [
+        { s: [], b: [], p: [], by: [190, 190, 190, 190] },
+        { s: [[84, 40]], b: [], p: [], by: [190, 190, 190, 190] },
+        { s: [[84, 40], [600, 70]], b: [], p: [], by: [190, 190, 190, 190] },
+        { s: [[84, 40], [331, 36]], b: [[570, 700, .8]], p: [], by: [190, 190, 190, 190] },
+        { s: [[84, 40], [449, 36]], b: [[570, 700, 1]], p: [[250, 280, 120]], by: [190, 150, 190, 190] },
+        { s: [[84, 40], [213, 36]], b: [[600, 710, 1.1]], p: [[250, 280, 120], [480, 270, 100]], by: [190, 150, 170, 120] },
+        { s: [[70, 36], [331, 36]], b: [[560, 720, 1.2]], p: [[120, 280, 100], [250, 250, 120], [480, 270, 100]], by: [160, 130, 190, 130] },
+        { s: [[84, 40], [449, 36]], b: [[190, 330, 1], [560, 720, 1.3]], p: [[250, 280, 120], [370, 250, 100], [490, 280, 100]], by: [190, 150, 120, 150] },
+        { s: [[84, 40], [331, 36], [600, 70]], b: [[190, 300, 1.2], [400, 520, 1.4]], p: [[120, 280, 100], [250, 250, 110], [370, 280, 90], [480, 250, 110]], by: [150, 120, 150, 120] },
+        { s: [[84, 40], [213, 36], [331, 36], [610, 70]], b: [[400, 560, 1.5]], p: [[120, 250, 100], [250, 280, 110], [370, 250, 100], [480, 280, 100]], by: [120, 150, 120, 150] }
+      ];
+
+      const T = {
+        uz: {
+          sub: "S6 · Dasturlash mavzusini o‘qitish metodikasi",
+          zones: ["Tushunchalar", "Ko‘nikmalar", "Murakkab masalalar"],
+          zoneDesc: ["Tushunchalarni shakllantirish", "Kodlash ko‘nikmalarini rivojlantirish", "Masalalarni bosqichma-bosqich murakkablashtirish"],
+          question: "Savol", score: "Ball",
+          menuTitle: "Kod-bot yo‘lga chiqdi",
+          menuText: "10 bosqichli o‘yin-viktorina: tushunchalardan murakkab masalalargacha. Savolni o‘qing va to‘g‘ri javob yozilgan blokni pastdan sakrab bosh bilan uring.",
+          rules: ["Tikan va bug yurakni oladi. Bugni ustidan bosib yo‘q qilish mumkin.", "Noto‘g‘ri blok ham yurakni oladi. Har yo‘nalish boshida 3 ta yurak tiklanadi.", "To‘g‘ri javobdan keyin eshik ochiladi, unga yeting."],
+          keys: "← → yurish · ↑ yoki Bo‘sh joy: sakrash",
+          start: "Boshlash", again: "Qayta o‘ynash",
+          hint: "Savolni o‘qing va javob blokini pastdan sakrab urib tanlang.",
+          wrong: "Noto‘g‘ri. Bitta yurak ketdi, boshqa blokni sinab ko‘ring.",
+          right: "To‘g‘ri! ", doorOpen: " Eshik ochildi, unga yeting.",
+          hurt: "Ehtiyot bo‘ling, yurak ketdi.",
+          overTitle: "Yuraklar tugadi", winTitle: "Barcha bosqichlar o‘tildi",
+          overText: (n, a) => `${n}-savolda to‘xtadingiz. To‘g‘ri javob: ${a}`,
+          winText: "Kod-bot oxirgi eshikka yetdi.",
+          sScore: "Ball", sCorrect: "To‘g‘ri javoblar", sFirst: "Birinchi urinishda", sBest: "Eng yaxshi natija",
+          byZone: "Yo‘nalishlar bo‘yicha",
+          adviceAll: "Barcha yo‘nalishlar mustahkam. Endi shu usullarni o‘z darsingizda sinab ko‘ring.",
+          advice: ["Takrorlang: yangi tushunchani o‘quvchining tanish tajribasi bilan bog‘lab tushuntirish.", "Takrorlang: trassirovka, xato qidirish va juft ishlash usullari.", "Takrorlang: masalani bitta yangi element qo‘shib, kichik qadamlar bilan murakkablashtirish."],
+          sound: "Ovoz", left: "Chapga", rightB: "O‘ngga", jump: "Sakrash", lang: "Til",
+          canvas: "O‘yin maydoni: kod-bot platformalar bo‘ylab yuradi va javob bloklarini uradi",
+          hearts: n => `Yuraklar: ${n} / 3`
+        },
+        ru: {
+          sub: "S6 · Методика обучения теме «Программирование»",
+          zones: ["Понятия", "Навыки", "Сложные задачи"],
+          zoneDesc: ["Формирование понятий", "Развитие навыков кодирования", "Поэтапное усложнение задач"],
+          question: "Вопрос", score: "Счёт",
+          menuTitle: "Код-бот отправился в путь",
+          menuText: "Игра-викторина из 10 уровней: от понятий до сложных задач. Прочитайте вопрос и ударьте головой снизу блок с верным ответом.",
+          rules: ["Шипы и баги отнимают сердце. Баг можно раздавить прыжком сверху.", "Неверный блок тоже отнимает сердце. В начале каждого раздела сердца восстанавливаются до 3.", "После верного ответа открывается дверь, добегите до неё."],
+          keys: "← → бег · ↑ или Пробел: прыжок",
+          start: "Начать", again: "Играть снова",
+          hint: "Прочитайте вопрос и выберите ответ, ударив блок снизу прыжком.",
+          wrong: "Неверно. Минус сердце, попробуйте другой блок.",
+          right: "Верно! ", doorOpen: " Дверь открыта, добегите до неё.",
+          hurt: "Осторожно, минус сердце.",
+          overTitle: "Сердца закончились", winTitle: "Все уровни пройдены",
+          overText: (n, a) => `Вы остановились на вопросе ${n}. Верный ответ: ${a}`,
+          winText: "Код-бот добрался до последней двери.",
+          sScore: "Очки", sCorrect: "Верных ответов", sFirst: "С первой попытки", sBest: "Лучший результат",
+          byZone: "По разделам",
+          adviceAll: "Все разделы освоены. Теперь попробуйте эти приёмы на своём уроке.",
+          advice: ["Повторите: введение понятия через знакомый ученику опыт.", "Повторите: трассировка, поиск ошибок и парная работа.", "Повторите: усложнение задачи малыми шагами, по одному новому элементу."],
+          sound: "Звук", left: "Влево", rightB: "Вправо", jump: "Прыжок", lang: "Язык",
+          canvas: "Игровое поле: код-бот идёт по платформам и бьёт блоки с ответами",
+          hearts: n => `Сердца: ${n} / 3`
+        }
+      };
+
+      /* ---------- state ---------- */
+      const $ = id => document.getElementById(id);
+      const cv = $('cv'), g = cv.getContext('2d');
+      const DPR = Math.min(2, window.devicePixelRatio || 1);
+      cv.width = W * DPR; cv.height = H * DPR; g.setTransform(DPR, 0, 0, DPR, 0, 0);
+      const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const FD = '"Pixelify Sans","Trebuchet MS",system-ui,sans-serif';
+      const FM = '"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace';
+
+      let lang = 'uz', state = 'menu', overlayMode = 'menu', endWin = false;
+      let lv = null, P = null, hearts = 3, score = 0, best = 0, tick = 0, muted = false, actx = null;
+      let stats = [];
+      const input = { left: false, right: false, jump: false, jumpEdge: false };
+      const C = {};
+      const parts = [], pops = [];
+      const glyphs = ['{ }', '[ ]', '( )', '//', '=>', '</>', '&&', 'i++', '0 1', '#'].map((t, i) => ({ t, x: (i * 97) % W, y: 30 + ((i * 61) % 260), v: REDUCED ? 0 : .12 + ((i * 7) % 5) * .05 }));
+
+      try { const s = localStorage.getItem('kodyoli-lang'); if (s === 'uz' || s === 'ru') lang = s; best = parseInt(localStorage.getItem('kodyoli-best') || '0', 10) || 0; } catch (e) { }
+
+      function readTheme() {
+        const cs = getComputedStyle(document.documentElement);
+        ['paper', 'grid', 'glyph', 'ink', 'ground', 'ground-line', 'blue', 'lemon', 'mint', 'coral', 'bug', 'edge', 'on-color', 'z1', 'z2', 'z3'].forEach(n => { C[n] = cs.getPropertyValue('--' + n).trim(); });
+      }
+      readTheme();
+
+      /* ---------- helpers ---------- */
+      function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]; } return a; }
+      function overlap(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
+      function zoneColor(z) { return C['z' + (z + 1)]; }
+      function t() { return T[lang]; }
+
+      /* ---------- audio ---------- */
+      function tone(f1, f2, d, type, vol, delay) {
+        if (muted || !actx) return;
+        try {
+          const t0 = actx.currentTime + (delay || 0);
+          const o = actx.createOscillator(), gn = actx.createGain();
+          o.type = type || 'square'; o.frequency.setValueAtTime(f1, t0);
+          if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + d);
+          gn.gain.setValueAtTime(vol || .04, t0); gn.gain.exponentialRampToValueAtTime(.0001, t0 + d);
+          o.connect(gn); gn.connect(actx.destination); o.start(t0); o.stop(t0 + d + .03);
+        } catch (e) { }
+      }
+      function sfx(k) {
+        switch (k) {
+          case 'jump': tone(280, 560, .14); break;
+          case 'coin': tone(988, 1319, .12); break;
+          case 'stomp': tone(200, 520, .12); break;
+          case 'right': tone(523, 523, .1); tone(659, 659, .1, 'square', .04, .1); tone(784, 1047, .25, 'square', .04, .2); break;
+          case 'wrong': tone(220, 110, .3, 'sawtooth', .04); break;
+          case 'hurt': tone(300, 80, .25, 'sawtooth', .05); break;
+        }
+      }
+
+      /* ---------- icons ---------- */
+      function heartSVG(full) {
+        const rows = ['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...'];
+        let r = '';
+        rows.forEach((row, y) => { [...row].forEach((c, x) => { if (c === '#') r += `<rect x="${x}" y="${y}" width="1" height="1"/>`; }); });
+        return `<svg class="heart ${full ? 'on' : 'off'}" viewBox="0 0 7 6" width="28" height="24" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`;
+      }
+      function robotSVG(cls) {
+        return `<rect class="r-lemon" x="6" y="0" width="2" height="2"/><rect class="r-ink" x="6" y="2" width="2" height="2"/>` +
+          `<rect class="r-ink" x="1" y="4" width="12" height="8"/><rect class="r-paper" x="3" y="5" width="8" height="4"/>` +
+          `<rect class="r-ink" x="5" y="6" width="1" height="2"/><rect class="r-ink" x="8" y="6" width="1" height="2"/>` +
+          `<rect class="r-blue" x="5" y="10" width="4" height="1"/><rect class="r-ink" x="3" y="12" width="3" height="3"/><rect class="r-ink" x="8" y="12" width="3" height="3"/>`;
+      }
+      function fbIconSVG(k) {
+        if (k === 'right') return '<svg viewBox="0 0 16 16" aria-hidden="true"><polyline points="2,8 6,12 14,3"/></svg>';
+        if (k === 'wrong') return '<svg viewBox="0 0 16 16" aria-hidden="true"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>';
+        return '<svg viewBox="0 0 16 16" aria-hidden="true"><line x1="8" y1="7" x2="8" y2="13"/><line x1="8" y1="3" x2="8" y2="4"/></svg>';
+      }
+
+      /* ---------- UI rendering ---------- */
+      function setFeedback(kind, text) {
+        const f = $('feedback'); f.dataset.kind = kind;
+        $('fbIcon').innerHTML = fbIconSVG(kind);
+        $('fbText').textContent = text;
+      }
+      function renderHearts() {
+        let h = ''; for (let i = 0; i < 3; i++)h += heartSVG(i < hearts);
+        const el = $('hearts'); el.innerHTML = h; el.setAttribute('aria-label', t().hearts(hearts));
+      }
+      function renderPips() {
+        const el = $('pips'); el.innerHTML = '';
+        for (let i = 0; i < N; i++) {
+          const li = document.createElement('li');
+          li.style.setProperty('--c', zoneColor(Q[i].z));
+          if (stats[i] && stats[i].ok) li.className = 'done';
+          else if (lv && i === lv.idx && state !== 'menu') li.className = 'current';
+          el.appendChild(li);
+        }
+      }
+      function renderZone() {
+        const z = lv ? Q[lv.idx].z : 0;
+        $('zoneName').textContent = t().zones[z] + ' · ' + t().zoneDesc[z];
+        $('zoneDot').style.setProperty('--zc', zoneColor(z));
+      }
+      function renderLegend() {
+        const el = $('legend'); el.innerHTML = '';
+        if (!lv) return;
+        lv.blocks.forEach(b => {
+          const li = document.createElement('li');
+          if (b.state !== 'idle') li.className = b.state;
+          const a = document.createElement('span'); a.className = 'ltr'; a.textContent = b.letter;
+          const x = document.createElement('span'); x.className = 'ltx'; x.textContent = lv.q[lang].o[b.orig];
+          li.append(a, x); el.appendChild(li);
+        });
+      }
+      function renderQuestion() {
+        if (!lv) return;
+        const L = lv.q[lang];
+        $('qMeta').textContent = `${t().question} ${lv.idx + 1}/${N} · ${t().zones[lv.q.z]}`;
+        $('qText').textContent = L.q;
+        const pre = $('qCode');
+        if (lv.q.code) { pre.hidden = false; pre.firstElementChild.textContent = lv.q.code; } else pre.hidden = true;
+        renderLegend();
+      }
+      function renderStatic() {
+        const s = t();
+        document.documentElement.lang = lang;
+        $('brandSub').textContent = s.sub;
+        $('scoreLabel').textContent = s.score;
+        $('muteBtn').setAttribute('aria-label', s.sound);
+        $('bLeft').setAttribute('aria-label', s.left);
+        $('bRight').setAttribute('aria-label', s.rightB);
+        $('bJump').setAttribute('aria-label', s.jump);
+        $('langSeg').setAttribute('aria-label', s.lang);
+        $('keysHint').textContent = s.keys;
+        cv.setAttribute('aria-label', s.canvas);
+        document.querySelectorAll('#langSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.lang === lang ? 'true' : 'false'));
+        $('logo').innerHTML = robotSVG();
+        renderHearts(); renderPips(); renderZone();
+        if (lv) { renderQuestion(); }
+        else {
+          $('qMeta').textContent = `${s.question} 1/${N} · ${s.zones[0]}`;
+          $('qText').textContent = Q[0][lang].q;
+          $('qCode').hidden = true;
+          $('legend').innerHTML = '';
+          Q[0][lang].o.forEach((txt, i) => { const li = document.createElement('li'); const a = document.createElement('span'); a.className = 'ltr'; a.textContent = 'ABCD'[i]; const x = document.createElement('span'); x.className = 'ltx'; x.textContent = txt; li.append(a, x); $('legend').appendChild(li); });
+        }
+        if (state === 'menu' || state === 'end') renderOverlay();
+        if (state === 'menu' || !lv) setFeedback('hint', s.hint);
+      }
+      function showOverlay() { $('overlay').hidden = false; cv.hidden = true; renderOverlay(); }
+      function hideOverlay() { $('overlay').hidden = true; cv.hidden = false; }
+      function renderOverlay() {
+        const s = t(), o = $('overlay');
+        if (overlayMode === 'menu') {
+          o.innerHTML = `<div class="panel"><svg class="hero" viewBox="0 0 14 16" shape-rendering="crispEdges" aria-hidden="true">${robotSVG()}</svg>` +
+            `<h2>${s.menuTitle}</h2><p>${s.menuText}</p>` +
+            `<ul class="rules">${s.rules.map(r => `<li>${r}</li>`).join('')}</ul>` +
+            `<p class="keys">${s.keys}</p>` +
+            (best > 0 ? `<p class="keys">${s.sBest}: ${best}</p>` : '') +
+            `<button type="button" class="btn" id="startBtn">${s.start}</button></div>`;
+        } else {
+          const correct = stats.filter(x => x && x.ok).length, first = stats.filter(x => x && x.first).length;
+          const zt = [0, 0, 0], zc = [0, 0, 0];
+          Q.forEach((q, i) => { zt[q.z]++; if (stats[i] && stats[i].ok) zc[q.z]++; });
+          let weak = -1, wr = 1;
+          for (let z = 0; z < 3; z++) { const r = zc[z] / zt[z]; if (r < wr) { wr = r; weak = z; } }
+          const title = endWin ? s.winTitle : s.overTitle;
+          const text = endWin ? s.winText : s.overText(lv.idx + 1, lv.q[lang].o[0]);
+          o.innerHTML = `<div class="panel"><svg class="hero" viewBox="0 0 14 16" shape-rendering="crispEdges" aria-hidden="true">${robotSVG()}</svg>` +
+            `<h2>${title}</h2><p>${text}</p>` +
+            `<div class="stats"><div class="stat"><b>${score}</b><span>${s.sScore}</span></div><div class="stat"><b>${correct}/${N}</b><span>${s.sCorrect}</span></div>` +
+            `<div class="stat"><b>${first}</b><span>${s.sFirst}</span></div><div class="stat"><b>${best}</b><span>${s.sBest}</span></div></div>` +
+            `<div class="zrows" aria-label="${s.byZone}">${[0, 1, 2].map(z => `<div class="zrow" style="--c:${zoneColor(z)}"><b><i></i>${s.zones[z]}</b><em>${zc[z]}/${zt[z]}</em></div>`).join('')}</div>` +
+            `<p class="advice">${weak < 0 ? s.adviceAll : s.advice[weak]}</p>` +
+            `<button type="button" class="btn" id="startBtn">${s.again}</button></div>`;
+        }
+        const b = $('startBtn'); if (b) b.onclick = startGame;
+      }
+
+      /* ---------- game flow ---------- */
+      function addScore(n) { score += n; $('score').textContent = score; }
+      function startGame() {
+        if (!actx) { try { const AC = window.AudioContext || window.webkitAudioContext; if (AC) actx = new AC(); } catch (e) { } }
+        if (actx && actx.state === 'suspended') { try { actx.resume(); } catch (e) { } }
+        score = 0; $('score').textContent = 0; hearts = 3; stats = []; parts.length = 0; pops.length = 0;
+        hideOverlay(); loadLevel(0);
+      }
+      function loadLevel(idx) {
+        const q = Q[idx], c = CFG[idx];
+        if (idx === 0 || q.z !== Q[idx - 1].z) hearts = 3;
+        const perm = shuffle([0, 1, 2, 3]);
+        lv = {
+          idx, q, solved: false, tries: 0, banner: 170,
+          plats: c.p.map(([x, y, w]) => ({ x, y, w, h: 12 })),
+          spikes: c.s.map(([x, w]) => ({ x, w })),
+          bugs: c.b.map(([x1, x2, sp], i) => ({ x: x1 + (x2 - x1 - 28) * .3, y: GY - 22, w: 28, h: 22, x1, x2, sp, dir: i % 2 ? -1 : 1, alive: true })),
+          coins: [],
+          blocks: perm.map((orig, j) => ({ x: BX[j], y: c.by[j], w: 44, h: 44, letter: 'ABCD'[j], orig, ok: orig === 0, state: 'idle', bump: 0 })),
+          door: { x: 738, y: GY - 56, w: 36, h: 56, open: false }
+        };
+        c.s.forEach(([x, w]) => { lv.coins.push({ x: x + w * .2, y: GY - 58 }, { x: x + w * .5, y: GY - 76 }, { x: x + w * .8, y: GY - 58 }); });
+        c.p.forEach(([x, y, w]) => { lv.coins.push({ x: x + w / 3, y: y - 24 }, { x: x + 2 * w / 3, y: y - 24 }); });
+        lv.coins.forEach(k => { k.got = false; });
+        resetPlayer();
+        state = 'play';
+        renderHearts(); renderPips(); renderZone(); renderQuestion();
+        setFeedback('hint', t().hint);
+      }
+      function resetPlayer() { P = { x: SPAWN_X, y: GY - PH, w: PW, h: PH, vx: 0, vy: 0, face: 1, onGround: true, coyote: 0, buf: 0, inv: 0, walk: 0 }; }
+      function pop(x, y, text, color) { pops.push({ x, y, text, color, life: 50 }); }
+      function burst(x, y, color, n) { for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, s = 1 + Math.random() * 3; parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 2, life: 30 + Math.random() * 20, color }); } }
+      function loseHeart(respawn) {
+        hearts--; renderHearts(); renderPips();
+        pop(P.x + P.w / 2, P.y - 4, '−1', C.coral);
+        if (hearts <= 0) { state = 'ending'; setTimeout(() => { endWin = false; overlayMode = 'end'; state = 'end'; showOverlay(); updateBest(); renderPips(); }, 900); return; }
+        if (respawn) { P.x = SPAWN_X; P.y = GY - PH; P.vx = 0; P.vy = 0; P.inv = 100; }
+      }
+      function hurt() {
+        if (P.inv > 0) return;
+        sfx('hurt'); loseHeart(true);
+        if (state === 'play') setFeedback('wrong', t().hurt);
+      }
+      function updateBest() { if (score > best) { best = score; try { localStorage.setItem('kodyoli-best', String(best)); } catch (e) { } } }
+      function bump(b) {
+        if (lv.solved || b.state !== 'idle') return;
+        b.bump = 8; lv.tries++;
+        if (b.ok) {
+          b.state = 'right'; lv.solved = true; lv.door.open = true;
+          addScore(lv.tries === 1 ? 150 : 75);
+          sfx('right'); burst(b.x + 22, b.y, C.lemon, 18); burst(b.x + 22, b.y, C.mint, 10);
+          pop(b.x + 22, b.y - 8, '+' + (lv.tries === 1 ? 150 : 75), C.mint);
+          setFeedback('right', t().right + lv.q[lang].why + t().doorOpen);
+        } else {
+          b.state = 'wrong';
+          sfx('wrong'); burst(b.x + 22, b.y + 22, C.coral, 12);
+          loseHeart(false);
+          if (state === 'play') setFeedback('wrong', t().wrong);
+        }
+        renderLegend();
+      }
+      function finishLevel() {
+        state = 'trans';
+        stats[lv.idx] = { ok: true, first: lv.tries === 1 };
+        renderPips();
+        if (lv.idx === N - 1) {
+          setTimeout(() => { endWin = true; overlayMode = 'end'; state = 'end'; updateBest(); showOverlay(); renderPips(); }, 400);
+        } else {
+          setTimeout(() => loadLevel(lv.idx + 1), 350);
+        }
+      }
+
+      /* ---------- simulation ---------- */
+      function step() {
+        const p = P;
+        const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+        p.vx = dir * SPEED; if (dir) p.face = dir;
+        if (dir && p.onGround) p.walk += .25;
+        if (p.onGround) p.coyote = 7; else if (p.coyote > 0) p.coyote--;
+        if (input.jumpEdge) { p.buf = 8; input.jumpEdge = false; } else if (p.buf > 0) p.buf--;
+        if (p.buf > 0 && p.coyote > 0) { p.vy = -JUMP; p.buf = 0; p.coyote = 0; p.onGround = false; sfx('jump'); }
+        if (!input.jump && p.vy < -4) p.vy = -4;
+        p.vy = Math.min(p.vy + GRAV, MAXFALL);
+
+        p.x += p.vx;
+        if (p.x < 0) p.x = 0; if (p.x + p.w > W) p.x = W - p.w;
+        for (const b of lv.blocks) { if (overlap(p, b)) { if (p.vx > 0) p.x = b.x - p.w; else if (p.vx < 0) p.x = b.x + b.w; } }
+
+        const prevBottom = p.y + p.h;
+        p.y += p.vy; p.onGround = false;
+        if (p.y + p.h >= GY) { p.y = GY - p.h; p.vy = 0; p.onGround = true; }
+        if (p.vy >= 0) {
+          for (const pl of lv.plats) {
+            if (p.x + p.w > pl.x && p.x < pl.x + pl.w && prevBottom <= pl.y + .01 && p.y + p.h >= pl.y) { p.y = pl.y - p.h; p.vy = 0; p.onGround = true; }
+          }
+        }
+        for (const b of lv.blocks) {
+          if (overlap(p, b)) {
+            if (p.vy < 0) { p.y = b.y + b.h; p.vy = 0; bump(b); }
+            else { p.y = b.y - p.h; p.vy = 0; p.onGround = true; }
+          }
+        }
+        if (state !== 'play') return;
+
+        if (p.inv > 0) p.inv--;
+        for (const s of lv.spikes) {
+          if (overlap(p, { x: s.x + 3, y: GY - 12, w: s.w - 6, h: 12 })) { hurt(); if (state !== 'play') return; }
+        }
+        for (const bg of lv.bugs) {
+          if (!bg.alive) continue;
+          bg.x += bg.dir * bg.sp;
+          if (bg.x < bg.x1) { bg.x = bg.x1; bg.dir = 1; }
+          if (bg.x + bg.w > bg.x2) { bg.x = bg.x2 - bg.w; bg.dir = -1; }
+          if (overlap(p, bg)) {
+            if (p.vy > 0 && prevBottom <= bg.y + 8) {
+              bg.alive = false; p.vy = -8; p.onGround = false; addScore(50); sfx('stomp');
+              burst(bg.x + 14, bg.y + 10, C.bug, 12); pop(bg.x + 14, bg.y - 4, '+50', C.bug);
+            } else { hurt(); if (state !== 'play') return; }
+          }
+        }
+        for (const k of lv.coins) {
+          if (!k.got && Math.abs(p.x + p.w / 2 - k.x) < 18 && Math.abs(p.y + p.h / 2 - k.y) < 22) {
+            k.got = true; addScore(10); sfx('coin'); burst(k.x, k.y, C.lemon, 5);
+          }
+        }
+        if (lv.solved && overlap(p, { x: lv.door.x + 8, y: lv.door.y, w: lv.door.w - 16, h: lv.door.h })) finishLevel();
+      }
+      function updateFx() {
+        tick++;
+        for (const b of lv ? lv.blocks : []) if (b.bump > 0) b.bump--;
+        if (lv && lv.banner > 0) lv.banner--;
+        for (const gl of glyphs) { gl.x -= gl.v; if (gl.x < -60) gl.x = W + 60; }
+        for (let i = parts.length - 1; i >= 0; i--) { const q = parts[i]; q.x += q.vx; q.y += q.vy; q.vy += .18; if (--q.life <= 0) parts.splice(i, 1); }
+        for (let i = pops.length - 1; i >= 0; i--) { const q = pops[i]; q.y -= .7; if (--q.life <= 0) pops.splice(i, 1); }
+        if (tick % 30 === 0) readTheme();
+      }
+
+      /* ---------- drawing ---------- */
+      function drawBlock(b) {
+        const off = b.bump > 0 ? Math.sin(b.bump / 8 * Math.PI) * 8 : 0;
+        const x = b.x, y = b.y - off, w = b.w, h = b.h;
+        let fill = C.blue;
+        if (b.state === 'right') fill = C.mint; else if (b.state === 'wrong') fill = C.coral;
+        g.save();
+        if (b.state === 'wrong') g.globalAlpha = .8;
+        g.fillStyle = fill; g.fillRect(x, y, w, h);
+        g.fillStyle = 'rgba(255,255,255,.28)'; g.fillRect(x, y, w, 5);
+        g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(x, y + h - 6, w, 6);
+        g.strokeStyle = C.edge; g.lineWidth = 3; g.strokeRect(x + 1.5, y + 1.5, w - 3, h - 3);
+        g.strokeStyle = C['on-color']; g.fillStyle = C['on-color']; g.lineWidth = 4; g.lineCap = 'square'; g.lineJoin = 'miter';
+        const cx = x + w / 2, cy = y + h / 2 + 1;
+        if (b.state === 'right') { g.beginPath(); g.moveTo(cx - 10, cy); g.lineTo(cx - 3, cy + 8); g.lineTo(cx + 11, cy - 9); g.stroke(); }
+        else if (b.state === 'wrong') { g.beginPath(); g.moveTo(cx - 9, cy - 9); g.lineTo(cx + 9, cy + 9); g.moveTo(cx + 9, cy - 9); g.lineTo(cx - 9, cy + 9); g.stroke(); }
+        else { g.font = '700 26px ' + FD; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(b.letter, cx, cy); }
+        g.restore();
+      }
+      function drawBug(b) {
+        g.save(); g.translate(b.x + b.w / 2, b.y + b.h);
+        const k = Math.floor(tick / 6) % 2;
+        g.strokeStyle = C.bug; g.lineWidth = 2; g.beginPath();
+        for (let i = -1; i <= 1; i++) { const lx = i * 8; g.moveTo(lx, -8); g.lineTo(lx + (k ? 3 : -3), 0); }
+        g.stroke();
+        g.fillStyle = C.bug; g.fillRect(-14, -20, 28, 13); g.fillRect(-10, -22, 20, 2);
+        const ex = b.dir > 0 ? 5 : -9;
+        g.fillStyle = C.paper; g.fillRect(ex, -17, 5, 5); g.fillStyle = C.ink; g.fillRect(ex + (b.dir > 0 ? 2 : 0), -16, 2, 3);
+        g.strokeStyle = C.bug; g.beginPath(); g.moveTo(b.dir > 0 ? 10 : -10, -21); g.lineTo(b.dir > 0 ? 14 : -14, -27); g.stroke();
+        g.restore();
+      }
+      function drawPlayer() {
+        const p = P;
+        if (p.inv > 0 && Math.floor(p.inv / 5) % 2 === 0) return;
+        g.save(); g.translate(p.x + p.w / 2, p.y + p.h); g.scale(p.face, 1);
+        let l1 = 0, l2 = 0;
+        if (!p.onGround) { l1 = l2 = 3; }
+        else if (Math.abs(p.vx) > 0) { const sw = Math.sin(p.walk * 2) * 4; l1 = Math.max(0, sw); l2 = Math.max(0, -sw); }
+        g.fillStyle = C.ink;
+        g.fillRect(-9, -8 - l1, 7, 8); g.fillRect(2, -8 - l2, 7, 8);
+        g.fillRect(-12, -28, 24, 20);
+        g.fillStyle = C.paper; g.fillRect(-9, -26, 18, 10);
+        g.fillStyle = C.ink; g.fillRect(-4, -23, 3, 5); g.fillRect(3, -23, 3, 5);
+        g.fillStyle = C.blue; g.fillRect(-5, -13, 10, 3);
+        g.fillStyle = C.ink; g.fillRect(-1, -32, 2, 4);
+        g.fillStyle = C.lemon; g.fillRect(-3, -34, 6, 3);
+        g.restore();
+      }
+      function drawDoor() {
+        const d = lv.door;
+        g.save();
+        if (d.open) {
+          g.fillStyle = C.mint; g.globalAlpha = .3; g.fillRect(d.x, d.y, d.w, d.h); g.globalAlpha = 1;
+          g.strokeStyle = C.mint; g.lineWidth = 4; g.strokeRect(d.x + 2, d.y + 2, d.w - 4, d.h - 4);
+          g.lineWidth = 3; g.lineCap = 'square';
+          const o = (tick / 8) % 8;
+          for (let i = 0; i < 2; i++) { const x = d.x + 9 + i * 9 + (o > 4 ? 2 : 0); g.beginPath(); g.moveTo(x, d.y + d.h / 2 - 9); g.lineTo(x + 7, d.y + d.h / 2); g.lineTo(x, d.y + d.h / 2 + 9); g.stroke(); }
+        } else {
+          g.fillStyle = C.ground; g.fillRect(d.x, d.y, d.w, d.h);
+          g.strokeStyle = C.edge; g.lineWidth = 3; g.strokeRect(d.x + 1.5, d.y + 1.5, d.w - 3, d.h - 3);
+          g.strokeStyle = C.lemon; g.lineWidth = 3; g.beginPath(); g.arc(d.x + d.w / 2, d.y + d.h / 2 - 4, 6, Math.PI, 0); g.stroke();
+          g.fillStyle = C.lemon; g.fillRect(d.x + d.w / 2 - 9, d.y + d.h / 2 - 4, 18, 14);
+          g.fillStyle = C.ground; g.fillRect(d.x + d.w / 2 - 2, d.y + d.h / 2, 4, 6);
+        }
+        g.restore();
+      }
+      function draw() {
+        g.clearRect(0, 0, W, H);
+        if (!lv) { g.fillStyle = C.paper; g.fillRect(0, 0, W, H); return; }
+        const zc = zoneColor(lv.q.z);
+        g.fillStyle = C.paper; g.fillRect(0, 0, W, H);
+        g.strokeStyle = C.grid; g.lineWidth = 1; g.beginPath();
+        for (let x = 0; x <= W; x += 40) { g.moveTo(x + .5, 0); g.lineTo(x + .5, GY); }
+        for (let y = 0; y <= GY; y += 40) { g.moveTo(0, y + .5); g.lineTo(W, y + .5); }
+        g.stroke();
+        g.fillStyle = C.glyph; g.font = '700 54px ' + FM; g.textAlign = 'center'; g.textBaseline = 'middle';
+        for (const gl of glyphs) g.fillText(gl.t, gl.x, gl.y);
+        /* ground */
+        g.fillStyle = C.ground; g.fillRect(0, GY, W, H - GY);
+        g.strokeStyle = C['ground-line']; g.lineWidth = 2; g.beginPath();
+        for (let x = -20; x < W; x += 24) { g.moveTo(x, H); g.lineTo(x + 40, GY + 10); }
+        g.stroke();
+        g.fillStyle = zc; g.fillRect(0, GY, W, 6);
+        /* platforms */
+        for (const pl of lv.plats) { g.fillStyle = C.ground; g.fillRect(pl.x, pl.y, pl.w, pl.h); g.fillStyle = zc; g.fillRect(pl.x, pl.y, pl.w, 4); }
+        /* spikes */
+        g.fillStyle = C.coral;
+        for (const s of lv.spikes) {
+          const n = Math.max(1, Math.round(s.w / 12)), tw = s.w / n;
+          g.beginPath();
+          for (let i = 0; i < n; i++) { g.moveTo(s.x + i * tw, GY); g.lineTo(s.x + i * tw + tw / 2, GY - 16); g.lineTo(s.x + (i + 1) * tw, GY); }
+          g.fill();
+        }
+        drawDoor();
+        /* coins */
+        for (const k of lv.coins) {
+          if (k.got) continue;
+          const r = 7 + Math.sin((tick + k.x) / 9) * 1.2;
+          g.fillStyle = C.lemon; g.beginPath(); g.arc(k.x, k.y, r, 0, Math.PI * 2); g.fill();
+          g.strokeStyle = C.edge; g.lineWidth = 2; g.stroke();
+          g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(k.x - 2, k.y - 4, 2, 6);
+        }
+        for (const b of lv.blocks) drawBlock(b);
+        for (const bg of lv.bugs) if (bg.alive) drawBug(bg);
+        drawPlayer();
+        for (const q of parts) { g.globalAlpha = Math.min(1, q.life / 20); g.fillStyle = q.color; g.fillRect(q.x - 2, q.y - 2, 4, 4); }
+        g.globalAlpha = 1;
+        g.font = '700 18px ' + FD; g.textAlign = 'center'; g.textBaseline = 'middle';
+        for (const q of pops) { g.globalAlpha = Math.min(1, q.life / 20); g.fillStyle = q.color; g.fillText(q.text, q.x, q.y); }
+        g.globalAlpha = 1;
+        /* zone banner */
+        if (lv.banner > 0) {
+          const a = Math.min(1, lv.banner / 40);
+          g.globalAlpha = a;
+          g.fillStyle = C.ground; g.fillRect(W / 2 - 200, 22, 400, 52);
+          g.fillStyle = zc; g.fillRect(W / 2 - 200, 22, 10, 52);
+          g.fillStyle = '#ffffff';
+          g.font = '700 22px ' + FD; g.textAlign = 'left'; g.textBaseline = 'middle';
+          g.fillText(`${lv.idx + 1}/${N} · ${t().zones[lv.q.z]}`, W / 2 - 178, 40);
+          g.font = '500 13px ' + FM; g.fillStyle = 'rgba(255,255,255,.8)';
+          g.fillText(t().zoneDesc[lv.q.z], W / 2 - 178, 60);
+          g.globalAlpha = 1;
+        }
+      }
+
+      /* ---------- loop ---------- */
+      let last = 0, acc = 0;
+      function frame(ts) {
+        if (!last) last = ts;
+        let dt = ts - last; last = ts; if (dt > 100) dt = 100;
+        acc += dt;
+        while (acc >= STEP) { if (state === 'play' && lv) step(); updateFx(); acc -= STEP; }
+        if (!cv.hidden) draw();
+        requestAnimationFrame(frame);
+      }
+
+      /* ---------- input ---------- */
+      const KEYMAP = { ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right', ArrowUp: 'jump', w: 'jump', W: 'jump', ' ': 'jump' };
+      function setKey(k, v, rep) {
+        if (k === 'jump') { if (v && !input.jump && !rep) input.jumpEdge = true; input.jump = v; } else input[k] = v;
+      }
+      window.addEventListener('keydown', e => {
+        const k = KEYMAP[e.key]; if (!k) return;
+        if (state === 'play') { e.preventDefault(); setKey(k, true, e.repeat); }
+      });
+      window.addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) setKey(k, false); });
+      window.addEventListener('blur', () => { input.left = input.right = input.jump = false; });
+      function hold(id, k) {
+        const el = $(id);
+        el.addEventListener('pointerdown', e => { e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch (_) { } setKey(k, true, false); });
+        ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => el.addEventListener(ev, () => setKey(k, false)));
+        el.addEventListener('contextmenu', e => e.preventDefault());
+      }
+      hold('bLeft', 'left'); hold('bRight', 'right'); hold('bJump', 'jump');
+
+      document.querySelectorAll('#langSeg button').forEach(b => b.addEventListener('click', () => {
+        lang = b.dataset.lang;
+        try { localStorage.setItem('kodyoli-lang', lang); } catch (e) { }
+        const kind = $('feedback').dataset.kind;
+        renderStatic();
+        if (kind !== 'hint' && lv) { $('feedback').dataset.kind = kind; $('fbIcon').innerHTML = fbIconSVG(kind); $('fbText').textContent = kind === 'right' ? t().right + lv.q[lang].why + t().doorOpen : t().wrong; }
+      }));
+      $('muteBtn').addEventListener('click', () => {
+        muted = !muted; $('muteBtn').setAttribute('aria-pressed', muted ? 'true' : 'false'); $('muteBtn').classList.toggle('is-muted', muted);
+      });
+
+      /* ---------- boot ---------- */
+      renderStatic();
+      showOverlay();
+      requestAnimationFrame(frame);
+    })();
+  </script>
+
+</body>
+
+</html>
